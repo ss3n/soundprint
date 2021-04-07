@@ -1,6 +1,8 @@
 import boto3
 from datetime import datetime
 import tekore as tk
+import pandas as pd
+import io
 
 
 def get_access_token():
@@ -44,3 +46,19 @@ def get_access_token():
 
         ddb_table.put_item(Item=new_token_item)
         return get_access_token()
+
+
+def upload_df_to_s3_csv(df: pd.DataFrame, include_index: bool, file_name: str):
+    """
+    Uploads a pandas dataframe to S3 bucket spotify-listener-bucket as a CSV file
+    :param df: dataframe to upload
+    :param include_index: if true, includes index values of dataframe into the csv file as a column
+    :param file_name: s3 file path for CSV file in the bucket
+    """
+    csv_string_buffer = io.StringIO()
+    df.to_csv(csv_string_buffer, index=include_index)
+    csv_string = csv_string_buffer.getvalue()
+    csv_string_buffer.close()
+
+    s3_connection = boto3.resource('s3')
+    s3_connection.Object('soundprint-bucket', file_name).put(Body=bytes(csv_string, 'utf-8'))
