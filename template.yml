@@ -76,4 +76,6 @@ Resources:
       FunctionName: !Sub '${ProjectId}-lambda-spotify-listener'
       Runtime: python3.8
       Handler: src.lambda.spotifylistener.lambda_handler
+      MemorySize: 512
+      Timeout: 60
       Role: !GetAtt SoundprintLambdaRole.Arn
