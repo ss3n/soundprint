@@ -78,25 +78,11 @@ Resources:
       Handler: src.lambda.spotifylistener.lambda_handler
       MemorySize: 512
       Timeout: 60
+      Events:
+        ScheduleHourEvent:
+          Type: Schedule
+          Properties:
+            Schedule: 'cron(0 * * * ? *)'
+            RetryPolicy:
+              MaximumEventAgeInSeconds: 1800
       Role: !GetAtt SoundprintLambdaRole.Arn
-
-  SoundprintListenerHourEventPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName: !Ref SoundprintSpotifyListener
-      Action: lambda:InvokeFunction
-      Principal: events.amazonaws.com
-      SourceArn: !GetAtt SoundprintHourScheduleRule.Arn
-
-  SoundprintHourScheduleRule:
-    Type: AWS::Events::Rule
-    Properties:
-      Name: !Sub '${ProjectId}-event-hour'
-      Description: Create an event every hour
-      ScheduleExpression: 'cron(0 * * * ? *)'
-      State: ENABLED
-      Targets:
-        - Arn: !GetAtt SoundprintSpotifyListener.Arn
-          Id: !Ref SoundprintSpotifyListener
-          RetryPolicy:
-            MaximumEventAgeInSeconds: 1800
