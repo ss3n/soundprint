@@ -20,10 +20,47 @@ Globals:
     AutoPublishAlias: live
     DeploymentPreference:
       Enabled: true
-      Type: Canary10Percent5Minutes
+      Type: AllAtOnce
       Role: !Ref CodeDeployRole
 
 Resources:
+  SoundprintS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${ProjectId}-bucket'
+      LifecycleConfiguration:
+        Rules:
+          - Id: HistoryLifecycleRule
+            Prefix: 'history/'
+            Status: Enabled
+            ExpirationInDays: 10
+
+  SoundprintLambdaRole:
+    Type: AWS::IAM::Role
+    Description: Creating IAM role for Lambda functions
+    Properties:
+      RoleName: !Sub '${ProjectId}-Lambda-Exec-Resources'
+      Description: IAM Role held by lambda functions under the Soundprint project
+      ManagedPolicyArns:
+        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref SoundprintS3Bucket
+        - S3WritePolicy:
+            BucketName: !Ref SoundprintS3Bucket
+        - DynamoDBReadPolicy:
+            TableName: SpotifyTokenState
+        - DynamoDBWritePolicy:
+            TableName: SpotifyTokenState
+
+  SoundprintSpotifyListener:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${ProjectId}-lambda-spotify-listener'
+      Runtime: python3.8
+      Handler: src.lambda.spotifylistener.lambda_handler
+      Role: !GetAtt SoundprintLambdaRole.Arn
+
   HelloWorld:
     Type: AWS::Serverless::Function
     Properties:
