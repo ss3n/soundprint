@@ -41,17 +41,29 @@ Resources:
     Properties:
       RoleName: !Sub '${ProjectId}-Lambda-Exec-Resources'
       Description: IAM Role held by lambda functions under the Soundprint project
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [ lambda.amazonaws.com ]
+            Action: sts:AssumeRole
       ManagedPolicyArns:
         - !Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
       Policies:
-        - S3ReadPolicy:
-            BucketName: !Ref SoundprintS3Bucket
-        - S3WritePolicy:
-            BucketName: !Ref SoundprintS3Bucket
-        - DynamoDBReadPolicy:
-            TableName: SpotifyTokenState
-        - DynamoDBWritePolicy:
-            TableName: SpotifyTokenState
+        - PolicyName: SoundprintBucketAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: '*'
+                Resource: !Sub 'arn:${AWS::Partition}:s3:::${SoundprintS3Bucket}/*'
+        - PolicyName: SoundprintDynamoDBAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: '*'
+                Resource: 'arn:aws:dynamodb:us-west-2:212033165103:table/SpotifyTokenState'
 
   SoundprintSpotifyListener:
     Type: AWS::Serverless::Function
