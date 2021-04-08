@@ -18,6 +18,9 @@ Parameters:
 Globals:
   Function:
     AutoPublishAlias: live
+    Runtime: python3.8
+    MemorySize: 512
+    Timeout: 60
     DeploymentPreference:
       Enabled: true
       Type: AllAtOnce
@@ -74,10 +77,8 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub '${ProjectId}-lambda-spotify-listener'
-      Runtime: python3.8
+      Description: Pulls recently heard Spotify tracks in the last hour, triggered at the start of every hour
       Handler: src.lambda.spotifylistener.lambda_handler
-      MemorySize: 512
-      Timeout: 60
       Events:
         ScheduleHourEvent:
           Type: Schedule
@@ -85,4 +86,25 @@ Resources:
             Schedule: 'cron(0 * * * ? *)'
             RetryPolicy:
               MaximumEventAgeInSeconds: 1800
+      Role: !GetAtt SoundprintLambdaRole.Arn
+
+  SoundprintSpotifyTracker:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${ProjectId}-lambda-spotify-tracker'
+      Description: Compiles track metadata by track-id, triggered upon creation of file with recently played tracks
+      Handler: src.lambda.spotifytracker.lambda_handler
+      Events:
+        S3ListenFileEvent:
+          Type: S3
+          Properties:
+            Bucket: !Ref SoundprintS3Bucket
+            Events: s3:ObjectCreated:*
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: 'history/listening/'
+                  - Name: suffix
+                    Value: '.csv'
       Role: !GetAtt SoundprintLambdaRole.Arn
