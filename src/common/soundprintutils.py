@@ -1,8 +1,12 @@
+from typing import List
+
 import boto3
 from datetime import datetime
 import tekore as tk
 import pandas as pd
 import io
+
+S3_BUCKET = 'soundprint-bucket'
 
 
 def get_access_token():
@@ -55,10 +59,35 @@ def upload_df_to_s3_csv(df: pd.DataFrame, include_index: bool, file_name: str):
     :param include_index: if true, includes index values of dataframe into the csv file as a column
     :param file_name: s3 file path for CSV file in the bucket
     """
+    assert file_name.endswith('.csv'), f"{file_name} does not end with .csv"
+
     csv_string_buffer = io.StringIO()
     df.to_csv(csv_string_buffer, index=include_index)
     csv_string = csv_string_buffer.getvalue()
     csv_string_buffer.close()
 
-    s3_connection = boto3.resource('s3')
-    s3_connection.Object('soundprint-bucket', file_name).put(Body=bytes(csv_string, 'utf-8'))
+    s3 = boto3.client('s3')
+    s3.put_object(Bucket=S3_BUCKET, Key=file_name, Body=bytes(csv_string, 'utf-8'))
+
+
+def download_df_from_s3_csv(file_name: str, expected_schema: List[str]) -> pd.DataFrame:
+    """
+    Downloads a CSV file from S3 and creates a pandas dataframe with the contents
+    :param file_name: bucket key name for the file to be downloaded
+    :param expected_schema: Expected schema of the dataframe
+    :return: pandas DataFrame object populated with the file's contents
+    """
+    assert file_name.endswith('.csv'), f"{file_name} does not end with .csv"
+
+    s3 = boto3.client('s3')
+    s3_response = s3.get_object(Bucket=S3_BUCKET, Key=file_name)
+
+    csv_string = str(s3_response.get('Body').read(), encoding='utf-8')
+    csv_string_buffer = io.StringIO(csv_string)
+    df = pd.read_csv(csv_string_buffer)
+    csv_string_buffer.close()
+
+    assert list(df.columns) == expected_schema, \
+        f"{file_name} does not match expected schema; expected: {expected_schema}, actual: {df.columns}"
+
+    return df
