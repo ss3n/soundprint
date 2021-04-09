@@ -64,7 +64,7 @@ Resources:
             Statement:
               - Effect: Allow
                 Action: '*'
-                Resource: !Sub 'arn:${AWS::Partition}:s3:::${SoundprintS3Bucket}/*'
+                Resource: !Sub 'arn:${AWS::Partition}:s3:::${ProjectId}-bucket/*'
         - PolicyName: SoundprintDynamoDBAccess
           PolicyDocument:
             Version: '2012-10-17'
