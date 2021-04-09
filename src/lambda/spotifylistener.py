@@ -110,5 +110,6 @@ def lambda_handler(event, context):
 
     # Upload to S3 as a CSV
     dt = datetime.fromtimestamp(snapshot_begin_timestamp_ms/1000)
-    s3_file_name = f"history/listening/{dt.year}/{dt.month}/{dt.day}/{dt.hour}-{dt.day}-{dt.month}-{dt.year}.csv"
+    s3_file_name = f"{ListenerCommon.FILE_PATH_PREFIX}{dt.year}/{dt.month}/{dt.day}/" \
+                   f"{dt.hour}-{dt.day}-{dt.month}-{dt.year}.csv"
     soundprintutils.upload_df_to_s3_csv(df=tracks_df, include_index=False, file_name=s3_file_name)

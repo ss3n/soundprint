@@ -5,3 +5,5 @@ class ListenerCommon:
     LISTEN_TIME = 'LISTENED_MS'
 
     SCHEMA = [TIMESTAMP, TRACK_ID, DURATION, LISTEN_TIME]
+
+    FILE_PATH_PREFIX = 'history/listening/'
