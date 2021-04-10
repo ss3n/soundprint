@@ -29,7 +29,7 @@ def get_albums_data(spotify_client: tk.Spotify, album_ids: List[str]) -> pd.Data
         album_dict = {
             AlbumerCommon.ALBUM_ID: album.id,
             AlbumerCommon.TYPE: album.album_type,
-            AlbumerCommon.GENRES: album.genres,
+            AlbumerCommon.GENRES: AlbumerCommon.encode_genres(album.genres),
             AlbumerCommon.LABEL: album.label,
             AlbumerCommon.NAME: album.name,
             AlbumerCommon.POPULARITY: album.popularity,

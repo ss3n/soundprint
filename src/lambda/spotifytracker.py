@@ -50,7 +50,9 @@ def get_tracks_data(spotify_client: tk.Spotify, track_ids: List[str]) -> pd.Data
         track_dict = {
             TrackerCommon.TRACK_ID: track_id,
             TrackerCommon.ALBUM_ID: track_metadata.album.id,
-            TrackerCommon.ARTIST_IDS: list(map(lambda artist: artist.id, track_metadata.artists)),
+            TrackerCommon.ARTIST_IDS: TrackerCommon.encode_artist_id_list(
+                list(map(lambda artist: artist.id, track_metadata.artists))
+            ),
             TrackerCommon.DURATION_MS: track_metadata.duration_ms,
             TrackerCommon.NAME: track_metadata.name,
             TrackerCommon.POPULARITY: track_metadata.popularity,
