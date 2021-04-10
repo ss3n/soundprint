@@ -36,8 +36,8 @@ def get_tracks_data(spotify_client: tk.Spotify, track_ids: List[str]) -> pd.Data
     :return:
     """
     # Get track-objects and track-audio-features for all tracks from querying Spotify
-    tracks_metadata = spotify_client.tracks(track_ids)
-    tracks_audio_features = spotify_client.tracks_audio_features(track_ids)
+    tracks_metadata = spotify_client.tracks(track_ids) if len(track_ids) > 0 else []
+    tracks_audio_features = spotify_client.tracks_audio_features(track_ids) if len(track_ids) > 0 else []
 
     track_dict_list = []
     for index, track_id in enumerate(track_ids):

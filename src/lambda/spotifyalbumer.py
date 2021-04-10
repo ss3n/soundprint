@@ -21,7 +21,7 @@ def get_albums_data(spotify_client: tk.Spotify, album_ids: List[str]) -> pd.Data
     8. album-popularity - (0-100) number signifying album's popularity
     """
     # Query Spotify for albums metadata
-    albums_metadata = spotify_client.albums(album_ids)
+    albums_metadata = spotify_client.albums(album_ids) if len(album_ids) > 0 else []
 
     album_dict_list = []
     for album in albums_metadata:

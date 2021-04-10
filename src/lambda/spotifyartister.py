@@ -17,7 +17,7 @@ def get_artists_data(spotify_client: tk.Spotify, artist_ids: List[str]) -> pd.Da
     4. artist-popularity - (0-100) measure of artist's popularity
     """
     # Query Spotify for artists metadata
-    artists_metadata = spotify_client.artists(artist_ids)
+    artists_metadata = spotify_client.artists(artist_ids) if len(artist_ids) > 0 else []
 
     artist_dict_list = []
     for artist in artists_metadata:
