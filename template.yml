@@ -108,3 +108,41 @@ Resources:
                   - Name: suffix
                     Value: '.csv'
       Role: !GetAtt SoundprintLambdaRole.Arn
+
+    SoundprintSpotifyAlbumer:
+      Type: AWS::Serverless::Function
+      Properties:
+        FunctionName: !Sub '${ProjectId}-lambda-spotify-albumer'
+        Description: Compiles album metadata by album-id upon creation of file with track metadata
+        Handler: src.lambda.spotifyalbumer.lambda_handler
+        Events:
+          S3TrackFileEvent:
+            Bucket: !Ref SoundprintS3Bucket
+            Events: s3:ObjectCreated:*
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: 'history/tracks/'
+                  - Name: suffix
+                    Value: '.csv'
+        Role: !GetAtt SoundprintLambdaRole.Arn
+
+    SoundprintSpotifyArtister:
+      Type: AWS::Serverless::Function
+      Properties:
+        FunctionName: !Sub '${ProjectId}-lambda-spotify-artister'
+        Description: Compiles artist metadata by artist-id upon creation of file with track metadata
+        Handler: src.lambda.spotifyartister.lambda_handler
+        Events:
+          S3TrackFileEvent:
+            Bucket: !Ref SoundprintS3Bucket
+            Events: s3:ObjectCreated:*
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: 'history/tracks/'
+                  - Name: suffix
+                    Value: '.csv'
+        Role: !GetAtt SoundprintLambdaRole.Arn
