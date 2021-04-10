@@ -1,5 +1,4 @@
 from typing import List
-import urllib.parse
 import tekore as tk
 import pandas as pd
 
@@ -55,7 +54,7 @@ def lambda_handler(event, context):
     :return:
     """
     # Read S3 Event to get the created csv file containing track-ids to query
-    tracks_file_name = urllib.parse.unquote_plus(event['Records'][0]['s3']['object']['key'], encoding='utf-8')
+    tracks_file_name = soundprintutils.extract_s3_key_sns_event(event=event)
     tracks_df = soundprintutils.download_df_from_s3_csv(tracks_file_name, TrackerCommon.SCHEMA)
 
     album_ids = list(set(tracks_df[TrackerCommon.ALBUM_ID]))

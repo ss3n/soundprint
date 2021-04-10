@@ -5,6 +5,7 @@ from datetime import datetime
 import tekore as tk
 import pandas as pd
 import io
+import json
 
 S3_BUCKET = 'soundprint-bucket'
 
@@ -91,3 +92,14 @@ def download_df_from_s3_csv(file_name: str, expected_schema: List[str]) -> pd.Da
         f"{file_name} does not match expected schema; expected: {expected_schema}, actual: {df.columns}"
 
     return df
+
+
+def extract_s3_key_sns_event(event, expected_bucket=S3_BUCKET):
+    """
+    Upon receiving an SNS notification, extracts the S3 key in the event
+    """
+    message = json.loads(event['Records'][0]['Sns']['Message'])
+    bucket = message['Records'][0]['s3']['bucket']['name']
+    assert bucket == expected_bucket, \
+        f"event bucket does not match expectation: expected: {expected_bucket}, actual: {bucket}"
+    return message['Records'][0]['s3']['object']['key']
