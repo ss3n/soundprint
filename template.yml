@@ -32,8 +32,25 @@ Resources:
     Properties:
       TopicName: !Sub '${ProjectId}-history-tracks'
 
+  SoundprintHistoryTracksTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics: [ !Ref SoundprintHistoryTracksTopic ]
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [ s3.amazonaws.com ]
+            Action: sns:Publish
+            Resource: !Ref SoundprintHistoryTracksTopic
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !Sub 'arn:${AWS::Partition}:s3:::${ProjectId}-bucket'
+
   SoundprintS3Bucket:
     Type: AWS::S3::Bucket
+    DependsOn: [ SoundprintHistoryTracksTopicPolicy ]
     Properties:
       BucketName: !Sub '${ProjectId}-bucket'
       PublicAccessBlockConfiguration:
