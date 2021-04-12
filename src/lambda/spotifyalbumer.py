@@ -32,7 +32,7 @@ def get_albums_data(spotify_client: tk.Spotify, album_ids: List[str]) -> pd.Data
             AlbumerCommon.LABEL: album.label,
             AlbumerCommon.NAME: album.name,
             AlbumerCommon.POPULARITY: album.popularity,
-            AlbumerCommon.RELEASE_DATE: pd.to_datetime(album.release_date),
+            AlbumerCommon.RELEASE_DATE: pd.to_datetime(album.release_date).timestamp(),
             AlbumerCommon.TOTAL_TRACKS: album.total_tracks
         }
 

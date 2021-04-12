@@ -20,7 +20,7 @@ def extract_playback_info(playback_items: List[tk.model.PlayHistory]) -> List[di
 
     for item in playback_items:
         item_dict = {
-            ListenerCommon.TIMESTAMP: item.played_at,
+            ListenerCommon.TIMESTAMP: item.played_at.timestamp(),
             ListenerCommon.TRACK_ID: item.track.id,
             ListenerCommon.DURATION: item.track.duration_ms,
         }
