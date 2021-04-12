@@ -13,7 +13,7 @@ def get_artists_data(spotify_client: tk.Spotify, artist_ids: List[str]) -> pd.Da
     The compiled metadata contains the following fields for each artist:
     1. artist-id
     2. artist-name
-    3. artist-genres - encoded list of genres associated with the artist
+    3. artist-genre - if artist has multiple generes, there will a row for the artist for each genre
     4. artist-popularity - (0-100) measure of artist's popularity
     """
     # Query Spotify for artists metadata
@@ -24,11 +24,10 @@ def get_artists_data(spotify_client: tk.Spotify, artist_ids: List[str]) -> pd.Da
         artist_dict = {
             ArtisterCommon.ARTIST_ID: artist.id,
             ArtisterCommon.ARTIST_NAME: artist.name,
-            ArtisterCommon.ARTIST_GENRES: ArtisterCommon.encode_genres(artist.genres),
             ArtisterCommon.ARTIST_POPULARITY: artist.popularity
         }
-
-        artist_dict_list.append(artist_dict)
+        genres = artist.genres
+        artist_dict_list += soundprintutils.normalize_dict_field_list(artist_dict, genres, ArtisterCommon.ARTIST_GENRE)
 
     return pd.DataFrame(artist_dict_list, columns=ArtisterCommon.SCHEMA)
 
@@ -49,11 +48,7 @@ def lambda_handler(event, context):
     tracks_file_name = soundprintutils.extract_s3_key_sns_event(event=event)
     tracks_df = soundprintutils.download_df_from_s3_csv(tracks_file_name, TrackerCommon.SCHEMA)
 
-    artist_ids = [
-        artist_id
-        for encoded_sublist in tracks_df[TrackerCommon.ARTIST_IDS]
-        for artist_id in TrackerCommon.decode_artist_id_list(encoded_sublist)
-    ]
+    artist_ids = list(set(tracks_df[TrackerCommon.ARTIST_ID].dropna()))
 
     # Get Spotify access token and initialize Spotify client
     access_token = soundprintutils.get_access_token()

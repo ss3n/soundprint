@@ -16,7 +16,7 @@ def get_tracks_data(spotify_client: tk.Spotify, track_ids: List[str]) -> pd.Data
     2. name of the track
     3. duration of the track in milliseconds
     4. album-id of the album the track belongs to
-    5. list of artist-ids for the track
+    5. artist-id for the track - if there are multiple artists, this track will have multiple rows, one for each artist
     6. track's popularity
     7. track explicit tag - true/false
     8. acousticness - probability (0-1) of track being acoustic
@@ -31,9 +31,7 @@ def get_tracks_data(spotify_client: tk.Spotify, track_ids: List[str]) -> pd.Data
     17. mode - Major is represented by 1 and minor is 0.
     18. tempo - overall beats per minute
     19. time-signature - integer notational convention to specify how many beats are in each bar
-    :param spotify_client:
-    :param track_ids:
-    :return:
+    :return: DataFrame with schema according to TrackerCommon.SCHEMA
     """
     # Get track-objects and track-audio-features for all tracks from querying Spotify
     tracks_metadata = spotify_client.tracks(track_ids) if len(track_ids) > 0 else []
@@ -50,9 +48,6 @@ def get_tracks_data(spotify_client: tk.Spotify, track_ids: List[str]) -> pd.Data
         track_dict = {
             TrackerCommon.TRACK_ID: track_id,
             TrackerCommon.ALBUM_ID: track_metadata.album.id,
-            TrackerCommon.ARTIST_IDS: TrackerCommon.encode_artist_id_list(
-                list(map(lambda artist: artist.id, track_metadata.artists))
-            ),
             TrackerCommon.DURATION_MS: track_metadata.duration_ms,
             TrackerCommon.NAME: track_metadata.name,
             TrackerCommon.POPULARITY: track_metadata.popularity,
@@ -70,8 +65,8 @@ def get_tracks_data(spotify_client: tk.Spotify, track_ids: List[str]) -> pd.Data
             TrackerCommon.TIME_SIGNATURE: track_audio_features.time_signature,
             TrackerCommon.VALENCE: track_audio_features.valence
         }
-
-        track_dict_list.append(track_dict)
+        track_artists = list(map(lambda artist: artist.id, track_metadata.artists))
+        track_dict_list += soundprintutils.normalize_dict_field_list(track_dict, track_artists, TrackerCommon.ARTIST_ID)
 
     return pd.DataFrame(track_dict_list, columns=TrackerCommon.SCHEMA)
 

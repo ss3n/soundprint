@@ -103,3 +103,23 @@ def extract_s3_key_sns_event(event, expected_bucket=S3_BUCKET):
     assert bucket == expected_bucket, \
         f"event bucket does not match expectation: expected: {expected_bucket}, actual: {bucket}"
     return message['Records'][0]['s3']['object']['key']
+
+
+def normalize_dict_field_list(dictt: dict, field_values: List, field_key) -> List[dict]:
+    """
+    Given a dictionary, a field-key and a list of values for the field, returns a list of dictionaries where each
+    dictionary has a mapping of field-key to one of the values in the list of field-values
+    :param dictt: Common dictionary that will feature in the list of normalized dictionaries
+    :param field_values: List of field-values to normalize the common dictionary by
+    :param field_key: The field's key
+    :return: List of normalized dictionaries where each dictionary contains a unique field-value mapped to the field-key
+    """
+    if len(field_values) == 0:
+        return [dictt]
+    else:
+        normalized_list = []
+        for value in field_values:
+            normalized_dict = {field_key: value}
+            normalized_dict.update(dictt)
+            normalized_list.append(normalized_dict)
+        return normalized_list

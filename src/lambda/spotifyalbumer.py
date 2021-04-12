@@ -14,7 +14,7 @@ def get_albums_data(spotify_client: tk.Spotify, album_ids: List[str]) -> pd.Data
     1. album-id
     2. album-name
     3. album-type - album/single/compilation
-    4. genres - list of genres to classify album, empty if unclassified
+    4. genre - if album has multiple generes, there will a row for the album for each genre
     5. album-release-date
     6. label - Music label for releasing the album
     7. album-track-count - total number of tracks in album
@@ -28,15 +28,14 @@ def get_albums_data(spotify_client: tk.Spotify, album_ids: List[str]) -> pd.Data
         album_dict = {
             AlbumerCommon.ALBUM_ID: album.id,
             AlbumerCommon.TYPE: album.album_type,
-            AlbumerCommon.GENRES: AlbumerCommon.encode_genres(album.genres),
             AlbumerCommon.LABEL: album.label,
             AlbumerCommon.NAME: album.name,
             AlbumerCommon.POPULARITY: album.popularity,
             AlbumerCommon.RELEASE_DATE: pd.to_datetime(album.release_date).timestamp(),
             AlbumerCommon.TOTAL_TRACKS: album.total_tracks
         }
-
-        album_dict_list.append(album_dict)
+        genres = album.genres
+        album_dict_list += soundprintutils.normalize_dict_field_list(album_dict, genres, AlbumerCommon.GENRE)
 
     return pd.DataFrame(album_dict_list, columns=AlbumerCommon.SCHEMA)
 
@@ -57,7 +56,7 @@ def lambda_handler(event, context):
     tracks_file_name = soundprintutils.extract_s3_key_sns_event(event=event)
     tracks_df = soundprintutils.download_df_from_s3_csv(tracks_file_name, TrackerCommon.SCHEMA)
 
-    album_ids = list(set(tracks_df[TrackerCommon.ALBUM_ID]))
+    album_ids = list(set(tracks_df[TrackerCommon.ALBUM_ID].dropna()))
 
     # Get Spotify access token and initialize Spotify client
     access_token = soundprintutils.get_access_token()
