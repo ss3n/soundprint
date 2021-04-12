@@ -1,5 +1,5 @@
 from typing import List
-from datetime import datetime
+from datetime import datetime, timezone
 import tekore as tk
 import pandas as pd
 
@@ -20,7 +20,7 @@ def extract_playback_info(playback_items: List[tk.model.PlayHistory]) -> List[di
 
     for item in playback_items:
         item_dict = {
-            ListenerCommon.TIMESTAMP: item.played_at.timestamp(),
+            ListenerCommon.TIMESTAMP: item.played_at.replace(tzinfo=timezone.utc).timestamp(),
             ListenerCommon.TRACK_ID: item.track.id,
             ListenerCommon.DURATION: item.track.duration_ms,
         }
@@ -72,7 +72,7 @@ def update_listened_to_durations(playtracks_df: pd.DataFrame, current_timestamp_
 
     for index, row in playtracks_df.iterrows():
         track_duration_ms = row[ListenerCommon.DURATION]
-        played_at_timestamp_ms = int(row[ListenerCommon.TIMESTAMP].timestamp()*1000)
+        played_at_timestamp_ms = int(row[ListenerCommon.TIMESTAMP]*1000)
 
         # If the time-gap between when this track was played and when next track was played is longer than the
         # track's duration, assume the entire track was listened to and use track-duration as value
