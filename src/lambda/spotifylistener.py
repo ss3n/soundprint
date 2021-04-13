@@ -101,7 +101,7 @@ def lambda_handler(event, context):
 
     # Initialize Spotify client and query tracks played in the last hour
     spotify = tk.Spotify(access_token)
-    current_timestamp_ms = int(datetime.now().timestamp() * 1000)
+    current_timestamp_ms = int(datetime.now(tz=timezone.utc).timestamp() * 1000)
     snapshot_begin_timestamp_ms = current_timestamp_ms - 3600*1000
     tracks_df = get_tracks_played_after(spotify, snapshot_begin_timestamp_ms)
 
@@ -109,7 +109,7 @@ def lambda_handler(event, context):
     tracks_df = update_listened_to_durations(tracks_df, current_timestamp_ms)
 
     # Upload to S3 as a CSV
-    dt = datetime.fromtimestamp(snapshot_begin_timestamp_ms/1000)
+    dt = datetime.fromtimestamp(snapshot_begin_timestamp_ms/1000, tz=timezone.utc)
     s3_file_name = f"{ListenerCommon.FILE_PATH_PREFIX}{dt.year}/{dt.month}/{dt.day}/" \
                    f"{dt.hour}-{dt.day}-{dt.month}-{dt.year}.csv"
     soundprintutils.upload_df_to_s3_csv(df=tracks_df, include_index=False, file_name=s3_file_name)
