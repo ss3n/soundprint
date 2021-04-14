@@ -94,17 +94,6 @@ def download_df_from_s3_csv(file_name: str, expected_schema: List[str]) -> pd.Da
     return df
 
 
-def extract_s3_key_sns_event(event, expected_bucket=S3_BUCKET):
-    """
-    Upon receiving an SNS notification, extracts the S3 key in the event
-    """
-    message = json.loads(event['Records'][0]['Sns']['Message'])
-    bucket = message['Records'][0]['s3']['bucket']['name']
-    assert bucket == expected_bucket, \
-        f"event bucket does not match expectation: expected: {expected_bucket}, actual: {bucket}"
-    return message['Records'][0]['s3']['object']['key']
-
-
 def normalize_dict_field_list(dictt: dict, field_values: List, field_key) -> List[dict]:
     """
     Given a dictionary, a field-key and a list of values for the field, returns a list of dictionaries where each

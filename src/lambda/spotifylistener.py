@@ -95,6 +95,7 @@ def lambda_handler(event, context):
     Lambda handler for the action of querying most recently heard tracks in the last 1 hour from Spotify
     and uploading the results into a CSV file in the S3 bucket.
     The CSV file follows the schema for ListenerCommon#SCHEMA.
+    :return uploaded S3 file name with listening history
     """
     # First, get access token
     access_token = soundprintutils.get_access_token()
@@ -113,3 +114,5 @@ def lambda_handler(event, context):
     s3_file_name = f"{ListenerCommon.FILE_PATH_PREFIX}{dt.year}/{dt.month}/{dt.day}/" \
                    f"{dt.hour}-{dt.day}-{dt.month}-{dt.year}.csv"
     soundprintutils.upload_df_to_s3_csv(df=tracks_df, include_index=False, file_name=s3_file_name)
+
+    return s3_file_name

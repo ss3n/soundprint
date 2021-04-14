@@ -40,20 +40,17 @@ def get_albums_data(spotify_client: tk.Spotify, album_ids: List[str]) -> pd.Data
     return pd.DataFrame(album_dict_list, columns=AlbumerCommon.SCHEMA)
 
 
-def lambda_handler(event, context):
+def lambda_handler(tracks_file_name, context):
     """
     Lambda handler for the action of querying spotify for all information related to spotify-albums by album-id.
-    The lambda gets triggered when a new file containing track-metadata is uploaded to S3. The S3 object is passed
-    into the event parameter triggering the function.
     This function reads the S3 object CSV file containing the album-ids for the tracks and queries Spotify to get
     the metadata about all those albums. This metadata is compiled into a CSV file as a table with primary key being
     album-id. This CSV is uploaded to S3.
-    :param event:
+    :param tracks_file_name: S3 file containing track-metadata with album-ids for tracks recently listened to
     :param context:
-    :return:
+    :return: uploaded S3 file name for file containing album-metadata
     """
     # Read S3 Event to get the created csv file containing track-ids to query
-    tracks_file_name = soundprintutils.extract_s3_key_sns_event(event=event)
     tracks_df = soundprintutils.download_df_from_s3_csv(tracks_file_name, TrackerCommon.SCHEMA)
 
     album_ids = list(set(tracks_df[TrackerCommon.ALBUM_ID].dropna()))
@@ -68,3 +65,5 @@ def lambda_handler(event, context):
     # Upload dataframe to S3 as CSV
     albums_file_name = f"{AlbumerCommon.FILE_PATH_PREFIX}{tracks_file_name.split(TrackerCommon.FILE_PATH_PREFIX)[1]}"
     soundprintutils.upload_df_to_s3_csv(df=albums_df, include_index=False, file_name=albums_file_name)
+
+    return albums_file_name
