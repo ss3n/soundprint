@@ -122,7 +122,7 @@ Resources:
   SoundprintStateMachine:
     Type: AWS::Serverless::StateMachine
     Properties:
-      Name: SoundprintStateMachine
+      Name: !Sub '${ProjectId}-state-machine'
       Events:
         ScheduleHourEvent:
           Type: Schedule
