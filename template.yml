@@ -118,6 +118,14 @@ Resources:
       Handler: src.lambda.spotifyartister.lambda_handler
       Role: !GetAtt SoundprintLambdaRole.Arn
 
+  SoundprintSpotifyJoiner:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${ProjectId}-lambda-spotify-joiner'
+      Description: Joins individual tables containing various metadata for recently heard tracks into a single table
+      Handler: src.lambda.spotifyjoiner.lambda_handler
+      Role: !GetAtt SoundprintLambdaRole.Arn
+
   # StateMachine orchestrating workflow using Lambda functions
   SoundprintStateMachine:
     Type: AWS::Serverless::StateMachine
@@ -147,6 +155,7 @@ Resources:
             Next: AlbumArtistState
           AlbumArtistState:
             Type: Parallel
+            ResultPath: $.albums_artists
             Branches:
               - StartAt: AlbumState
                 States:
@@ -154,7 +163,7 @@ Resources:
                     Type: Task
                     Resource: !GetAtt SoundprintSpotifyAlbumer.Arn
                     InputPath: $.tracks
-                    ResultPath: $.albums
+                    ResultPath: $
                     End: true
               - StartAt: ArtistState
                 States:
@@ -162,8 +171,18 @@ Resources:
                     Type: Task
                     Resource: !GetAtt SoundprintSpotifyArtister.Arn
                     InputPath: $.tracks
-                    ResultPath: $.artists
+                    ResultPath: $
                     End: true
+            Next: JoinState
+          JoinState:
+            Type: Task
+            Resource: !GetAtt SoundprintSpotifyJoiner.Arn
+            Parameters:
+              listening.$: $.listening
+              tracks.$: $.tracks
+              albums.$: $.albums_artists[0]
+              artists.$: $.albums_artists[1]
+            ResultPath: $.joining
             End: true
 
   # Role for StateMachine orchestrating Lambda workflow
@@ -191,3 +210,4 @@ Resources:
                   - !GetAtt SoundprintSpotifyTracker.Arn
                   - !GetAtt SoundprintSpotifyAlbumer.Arn
                   - !GetAtt SoundprintSpotifyArtister.Arn
+                  - !GetAtt SoundprintSpotifyJoiner.Arn
