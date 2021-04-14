@@ -27,30 +27,10 @@ Globals:
       Role: !Ref CodeDeployRole
 
 Resources:
-  SoundprintHistoryTracksTopic:
-    Type: AWS::SNS::Topic
-    Properties:
-      TopicName: !Sub '${ProjectId}-history-tracks'
-
-  SoundprintHistoryTracksTopicPolicy:
-    Type: AWS::SNS::TopicPolicy
-    Properties:
-      Topics: [ !Ref SoundprintHistoryTracksTopic ]
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: [ s3.amazonaws.com ]
-            Action: sns:Publish
-            Resource: !Ref SoundprintHistoryTracksTopic
-            Condition:
-              ArnEquals:
-                aws:SourceArn: !Sub 'arn:${AWS::Partition}:s3:::${ProjectId}-bucket'
-
+  # Main S3 bucket for soundprint project to hold all historical pulled data as well as source code and processed data
+  # Has a lifecycle policy of 10 days to clear out all data under history/
   SoundprintS3Bucket:
     Type: AWS::S3::Bucket
-    DependsOn: [ SoundprintHistoryTracksTopicPolicy ]
     Properties:
       BucketName: !Sub '${ProjectId}-bucket'
       PublicAccessBlockConfiguration:
@@ -58,17 +38,6 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
-      NotificationConfiguration:
-        TopicConfigurations:
-          - Topic: !Ref SoundprintHistoryTracksTopic
-            Event: s3:ObjectCreated:*
-            Filter:
-              S3Key:
-                Rules:
-                  - Name: prefix
-                    Value: 'history/tracks/'
-                  - Name: suffix
-                    Value: '.csv'
       LifecycleConfiguration:
         Rules:
           - Id: HistoryLifecycleRule
@@ -76,13 +45,16 @@ Resources:
             Status: Enabled
             ExpirationInDays: 10
 
+  # Common Lambda IAM role for all lambda functions in soundprint
+  # Has executable permissions along with access to S3 bucket and dynamodb table for the project
   SoundprintLambdaRole:
     Type: AWS::IAM::Role
     Description: Creating IAM role for Lambda functions
     Properties:
-      RoleName: !Sub '${ProjectId}-Lambda-Exec-Resources'
+      RoleName: !Sub '${ProjectId}-lambda-exec-resources-role'
       Description: IAM Role held by lambda functions under the Soundprint project
       AssumeRolePolicyDocument:
+        Version: '2012-10-17'
         Statement:
           - Effect: Allow
             Principal:
@@ -106,12 +78,51 @@ Resources:
                 Action: '*'
                 Resource: 'arn:aws:dynamodb:us-west-2:212033165103:table/SpotifyTokenState'
 
+  # Listener lambda function that gets triggered by a scheduled-event every hour and pulls the spotify tracks
+  # listened to in the last hour. These are then archived in the S3 bucket under history/listening/
   SoundprintSpotifyListener:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub '${ProjectId}-lambda-spotify-listener'
       Description: Pulls recently heard Spotify tracks in the last hour, triggered at the start of every hour
       Handler: src.lambda.spotifylistener.lambda_handler
+      Role: !GetAtt SoundprintLambdaRole.Arn
+
+  # Lambda function triggered by creation of files under history/listening/. Gathers metadata about tracks
+  # listened to in that hour and archives them under history/tracks/
+  SoundprintSpotifyTracker:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${ProjectId}-lambda-spotify-tracker'
+      Description: Compiles track metadata by track-id, triggered upon creation of file with recently played tracks
+      Handler: src.lambda.spotifytracker.lambda_handler
+      Role: !GetAtt SoundprintLambdaRole.Arn
+
+  # Lambda function triggered by creation of track-metadata file under history/tracks/. For each track, pulls the
+  # album metadata and archives under history/albums/
+  SoundprintSpotifyAlbumer:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${ProjectId}-lambda-spotify-albumer'
+      Description: Compiles album metadata by album-id upon creation of file with track metadata
+      Handler: src.lambda.spotifyalbumer.lambda_handler
+      Role: !GetAtt SoundprintLambdaRole.Arn
+
+  # Lambda function triggered by creation of track-metadata file under history/tracks/. For each track, pulls the
+  # artist metadata and archives under history/artists/
+  SoundprintSpotifyArtister:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${ProjectId}-lambda-spotify-artister'
+      Description: Compiles artist metadata by artist-id upon creation of file with track metadata
+      Handler: src.lambda.spotifyartister.lambda_handler
+      Role: !GetAtt SoundprintLambdaRole.Arn
+
+  # StateMachine orchestrating workflow using Lambda functions
+  SoundprintStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Name: SoundprintStateMachine
       Events:
         ScheduleHourEvent:
           Type: Schedule
@@ -119,51 +130,64 @@ Resources:
             Schedule: 'cron(0 * * * ? *)'
             RetryPolicy:
               MaximumEventAgeInSeconds: 1800
-      Role: !GetAtt SoundprintLambdaRole.Arn
+      Role: !GetAtt SoundprintStateMachineRole.Arn
+      Definition:
+        StartAt: ListenState
+        States:
+          ListenState:
+            Type: Task
+            Resource: !GetAtt SoundprintSpotifyListener.Arn
+            ResultPath: $.listening
+            Next: TrackState
+          TrackState:
+            Type: Task
+            Resource: !GetAtt SoundprintSpotifyTracker.Arn
+            InputPath: $.listening
+            ResultPath: $.tracks
+            Next: AlbumArtistState
+          AlbumArtistState:
+            Type: Parallel
+            Branches:
+              - StartAt: AlbumState
+                States:
+                  AlbumState:
+                    Type: Task
+                    Resource: !GetAtt SoundprintSpotifyAlbumer.Arn
+                    InputPath: $.tracks
+                    ResultPath: $.albums
+                    End: true
+              - StartAt: ArtistState
+                States:
+                  ArtistState:
+                    Type: Task
+                    Resource: !GetAtt SoundprintSpotifyArtister.Arn
+                    InputPath: $.tracks
+                    ResultPath: $.artists
+                    End: true
+            End: true
 
-  SoundprintSpotifyTracker:
-    Type: AWS::Serverless::Function
+  # Role for StateMachine orchestrating Lambda workflow
+  SoundprintStateMachineRole:
+    Type: AWS::IAM::Role
     Properties:
-      FunctionName: !Sub '${ProjectId}-lambda-spotify-tracker'
-      Description: Compiles track metadata by track-id, triggered upon creation of file with recently played tracks
-      Handler: src.lambda.spotifytracker.lambda_handler
-      Events:
-        S3ListenFileEvent:
-          Type: S3
-          Properties:
-            Bucket: !Ref SoundprintS3Bucket
-            Events: s3:ObjectCreated:*
-            Filter:
-              S3Key:
-                Rules:
-                  - Name: prefix
-                    Value: 'history/listening/'
-                  - Name: suffix
-                    Value: '.csv'
-      Role: !GetAtt SoundprintLambdaRole.Arn
-
-  SoundprintSpotifyAlbumer:
-    Type: AWS::Serverless::Function
-    Properties:
-      FunctionName: !Sub '${ProjectId}-lambda-spotify-albumer'
-      Description: Compiles album metadata by album-id upon creation of file with track metadata
-      Handler: src.lambda.spotifyalbumer.lambda_handler
-      Events:
-        SoundprintTracksSNSEvent:
-          Type: SNS
-          Properties:
-            Topic: !Ref SoundprintHistoryTracksTopic
-      Role: !GetAtt SoundprintLambdaRole.Arn
-
-  SoundprintSpotifyArtister:
-    Type: AWS::Serverless::Function
-    Properties:
-      FunctionName: !Sub '${ProjectId}-lambda-spotify-artister'
-      Description: Compiles artist metadata by artist-id upon creation of file with track metadata
-      Handler: src.lambda.spotifyartister.lambda_handler
-      Events:
-        SoundprintTracksSNSEvent:
-          Type: SNS
-          Properties:
-            Topic: !Ref SoundprintHistoryTracksTopic
-      Role: !GetAtt SoundprintLambdaRole.Arn
+      RoleName: !Sub '${ProjectId}-state-machine-role'
+      Description: IAM Role for execution of lambda orchestrating state machine for Soundprint
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [ states.amazonaws.com ]
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: SoundprintLambdaInvocationAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: 'lambda:InvokeFunction'
+                Resource:
+                  - !GetAtt SoundprintSpotifyListener.Arn
+                  - !GetAtt SoundprintSpotifyTracker.Arn
+                  - !GetAtt SoundprintSpotifyAlbumer.Arn
+                  - !GetAtt SoundprintSpotifyArtister.Arn
