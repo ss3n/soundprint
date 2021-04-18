@@ -6,6 +6,8 @@ import pandas as pd
 from src.common import soundprintutils
 from src.common.listener import ListenerCommon
 
+TRACK_DURATION_MS = {}
+
 
 def extract_playback_info(playback_items: List[tk.model.PlayHistory]) -> List[dict]:
     """
@@ -22,8 +24,8 @@ def extract_playback_info(playback_items: List[tk.model.PlayHistory]) -> List[di
         item_dict = {
             ListenerCommon.TIMESTAMP: item.played_at.replace(tzinfo=timezone.utc).timestamp(),
             ListenerCommon.TRACK_ID: item.track.id,
-            ListenerCommon.DURATION: item.track.duration_ms,
         }
+        TRACK_DURATION_MS[item.track.id] = item.track.duration_ms
 
         items_dict_list.append(item_dict)
 
@@ -35,7 +37,7 @@ def get_tracks_played_after(spotify_client: tk.Spotify, after_timestamp_ms: int)
     Using the spotify-client, this function will query Spotify Web API to get recently played tracks after the
     point of time specified by the provided timestamp.
     The results are extracted, parsed and returned in a pandas DataFrame with schema according to ListenerCommon#SCHEMA.
-    The column for ListenerCommon#LISTEN_TIME is not populated for any row and is NaN
+    The column for ListenerCommon#LISTENED_TIME is not populated for any row and is NaN
     :param spotify_client: Client with access token to query Spotify Web API
     :param after_timestamp_ms: Epoch time in milliseconds after which recently played tracks are to be queried
     :return: pandas DataFrame with relevant fields of recently played soundtracks on Spotify
@@ -58,11 +60,11 @@ def update_listened_to_durations(playtracks_df: pd.DataFrame, current_timestamp_
     """
     Given a populated pandas DataFrame containing extracted data from recently played tracks according to
     ListenerCommon#SCHEMA, calculate the time in milliseconds spent in listening to each track.
-    Returns an updated pandas DataFrame with ListenerCommon#LISTEN_TIME filled in with results of the calculation.
+    Returns an updated pandas DataFrame with ListenerCommon#LISTENED_TIME filled in with results of the calculation.
     The returned dataframe is sorted in ascending order of timestamp of when the track was played.
     :param playtracks_df: The input pandas DataFrame
     :param current_timestamp_ms: The timestamp of the time when query was run
-    :return: Output pandas DataFrame with calculated ListenerCommon#LISTEN_TIME, sorted by when track was played in
+    :return: Output pandas DataFrame with calculated ListenerCommon#LISTENED_TIME, sorted by when track was played in
     ascending order
     """
     playtracks_df = playtracks_df.sort_values(ListenerCommon.TIMESTAMP, ascending=False)
@@ -71,7 +73,7 @@ def update_listened_to_durations(playtracks_df: pd.DataFrame, current_timestamp_
     more_recent_timestamp_ms = current_timestamp_ms
 
     for index, row in playtracks_df.iterrows():
-        track_duration_ms = row[ListenerCommon.DURATION]
+        track_duration_ms = TRACK_DURATION_MS[row[ListenerCommon.TRACK_ID]]
         played_at_timestamp_ms = int(row[ListenerCommon.TIMESTAMP]*1000)
 
         # If the time-gap between when this track was played and when next track was played is longer than the
@@ -84,7 +86,7 @@ def update_listened_to_durations(playtracks_df: pd.DataFrame, current_timestamp_
 
         more_recent_timestamp_ms = played_at_timestamp_ms
 
-    listened_ms_series = pd.Series(listened_ms_list, name=ListenerCommon.LISTEN_TIME, index=playtracks_df.index)
+    listened_ms_series = pd.Series(listened_ms_list, name=ListenerCommon.LISTENED_TIME, index=playtracks_df.index)
     playtracks_df.update(listened_ms_series)
 
     return playtracks_df.sort_values(ListenerCommon.TIMESTAMP, ascending=True)
