@@ -36,6 +36,11 @@ def lambda_handler(file_names_map, context):
         artists_df, on=ArtisterCommon.ARTIST_ID
     )
 
+    # Rearrange data-frame to be in ascending order of listened-timestamp and follow the right schema
+    assert joined_df.columns.size == len(JoinerCommon.SCHEMA)
+    joined_df = joined_df[JoinerCommon.SCHEMA]
+    joined_df = joined_df.sort_values(ListenerCommon.TIMESTAMP, ascending=True)
+
     # Upload to S3 as a CSV
     joint_file_name = f"{JoinerCommon.FILE_PATH_PREFIX}{listening_file_name.split(ListenerCommon.FILE_PATH_PREFIX)[1]}"
     soundprintutils.upload_df_to_s3_csv(joined_df, False, joint_file_name)
