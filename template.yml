@@ -65,6 +65,24 @@ Resources:
       Name: !Sub '${ProjectId}-db-secret'
       SecretString: !Sub '{"username":"${DBUsername}","password":"${DBPassword}"}'
 
+  # Aurora Serverless DB to archive all soundprint data
+  SoundprintAuroraCluster:
+    Type: AWS::RDS::DBCluster
+    Properties:
+      DatabaseName: !Sub '${ProjectId}db'
+      DBClusterIdentifier: !Sub '${ProjectId}-db-cluster'
+      EnableHttpEndpoint: true
+      Engine: aurora-mysql
+      EngineVersion: 5.7.12
+      EngineMode: serverless
+      ScalingConfiguration:
+        AutoPause: true
+        SecondsUntilAutoPause: 900
+        MinCapacity: 2
+        MaxCapacity: 64
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
+
   # Common Lambda IAM role for all lambda functions in soundprint
   # Has executable permissions along with access to S3 bucket and dynamodb table for the project
   SoundprintLambdaRole:
