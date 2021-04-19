@@ -84,7 +84,7 @@ Resources:
       MasterUserPassword: !Ref DBPassword
 
   # Common Lambda IAM role for all lambda functions in soundprint
-  # Has executable permissions along with access to S3 bucket and dynamodb table for the project
+  # Has executable permissions along with access to S3 bucket, dynamodb table and AuroraDB for the project
   SoundprintLambdaRole:
     Type: AWS::IAM::Role
     Description: Creating IAM role for Lambda functions
@@ -115,6 +115,25 @@ Resources:
               - Effect: Allow
                 Action: '*'
                 Resource: 'arn:aws:dynamodb:us-west-2:212033165103:table/SpotifyTokenState'
+        - PolicyName: SoundprintSecretsAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetResourcePolicy
+                  - secretsmanager:GetSecretValue
+                  - secretsmanager:DescribeSecret
+                  - secretsmanager:ListSecretVersionIds
+                Resource: !Ref SoundprintDBSecret
+        - PolicyName: SoundprintAuroraAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: '*'
+                Resource:
+                - !Sub 'arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:cluster:${SoundprintAuroraCluster}'
 
   # Listener lambda function that gets triggered by a scheduled-event every hour and pulls the spotify tracks
   # listened to in the last hour. These are then archived in the S3 bucket under history/listening/
