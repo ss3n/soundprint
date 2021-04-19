@@ -74,7 +74,7 @@ Resources:
       EngineMode: serverless
       ScalingConfiguration:
         AutoPause: true
-        SecondsUntilAutoPause: 900
+        SecondsUntilAutoPause: 300
         MinCapacity: 2
         MaxCapacity: 64
       MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref SoundprintDBSecret, ':SecretString:username}}']]
