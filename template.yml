@@ -58,6 +58,13 @@ Resources:
             Status: Enabled
             ExpirationInDays: 10
 
+  # SecretsManager for containing username and password for accessing Soundprint's archival DB
+  SoundprintDBSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub '${ProjectId}-db-secret'
+      SecretString: !Sub '{"username":"${DBUsername}","password":"${DBPassword}"}'
+
   # Common Lambda IAM role for all lambda functions in soundprint
   # Has executable permissions along with access to S3 bucket and dynamodb table for the project
   SoundprintLambdaRole:
