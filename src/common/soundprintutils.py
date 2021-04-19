@@ -1,11 +1,11 @@
 from typing import List
+from typing import Tuple
 
 import boto3
 from datetime import datetime
 import tekore as tk
 import pandas as pd
 import io
-import json
 
 S3_BUCKET = 'soundprint-bucket'
 
@@ -53,6 +53,14 @@ def get_access_token():
         return get_access_token()
 
 
+def update_dict_by_schema(dictt: dict, schema_field: Tuple[str, classmethod], value):
+    """
+    A schema_field is a tuple (field_name_str, field_data_type)
+    Given a dict, puts an entry into that dict with key as field_name_str and value as field_data_type(value)
+    """
+    dictt[schema_field[0]] = schema_field[1](value)
+
+
 def upload_df_to_s3_csv(df: pd.DataFrame, include_index: bool, file_name: str):
     """
     Uploads a pandas dataframe to S3 bucket spotify-listener-bucket as a CSV file
@@ -94,13 +102,13 @@ def download_df_from_s3_csv(file_name: str, expected_schema: List[str]) -> pd.Da
     return df
 
 
-def normalize_dict_field_list(dictt: dict, field_values: List, field_key) -> List[dict]:
+def normalize_dict_field_list(dictt: dict, field_values: List, schema_field: Tuple[str, classmethod]) -> List[dict]:
     """
     Given a dictionary, a field-key and a list of values for the field, returns a list of dictionaries where each
     dictionary has a mapping of field-key to one of the values in the list of field-values
     :param dictt: Common dictionary that will feature in the list of normalized dictionaries
     :param field_values: List of field-values to normalize the common dictionary by
-    :param field_key: The field's key
+    :param schema_field: The field's schema key: (field_name, field_data_type)
     :return: List of normalized dictionaries where each dictionary contains a unique field-value mapped to the field-key
     """
     if len(field_values) == 0:
@@ -108,7 +116,7 @@ def normalize_dict_field_list(dictt: dict, field_values: List, field_key) -> Lis
     else:
         normalized_list = []
         for value in field_values:
-            normalized_dict = {field_key: value}
+            normalized_dict = {schema_field[0]: schema_field[1](value)}
             normalized_dict.update(dictt)
             normalized_list.append(normalized_dict)
         return normalized_list

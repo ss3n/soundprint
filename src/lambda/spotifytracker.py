@@ -44,26 +44,28 @@ def get_tracks_data(spotify_client: tk.Spotify, track_ids: List[str]) -> pd.Data
         track_metadata = tracks_metadata[index]
         track_audio_features = tracks_audio_features[index]
 
-        track_dict = {
-            TrackerCommon.TRACK_ID: track_id,
-            TrackerCommon.ALBUM_ID: track_metadata.album.id,
-            TrackerCommon.DURATION_MS: track_metadata.duration_ms,
-            TrackerCommon.NAME: track_metadata.name,
-            TrackerCommon.POPULARITY: track_metadata.popularity,
-            TrackerCommon.EXPLICIT: track_metadata.explicit,
-            TrackerCommon.ACOUSTICNESS: track_audio_features.acousticness,
-            TrackerCommon.DANCEABILITY: track_audio_features.danceability,
-            TrackerCommon.ENERGY: track_audio_features.energy,
-            TrackerCommon.INSTRUMENTALNESS: track_audio_features.instrumentalness,
-            TrackerCommon.KEY: track_audio_features.key,
-            TrackerCommon.LIVENESS: track_audio_features.liveness,
-            TrackerCommon.LOUDNESS: track_audio_features.loudness,
-            TrackerCommon.MODE: track_audio_features.mode,
-            TrackerCommon.SPEECHINESS: track_audio_features.speechiness,
-            TrackerCommon.TEMPO: track_audio_features.tempo,
-            TrackerCommon.TIME_SIGNATURE: track_audio_features.time_signature,
-            TrackerCommon.VALENCE: track_audio_features.valence
-        }
+        track_dict = {}
+        soundprintutils.update_dict_by_schema(track_dict, TrackerCommon.TRACK_ID, track_id)
+        soundprintutils.update_dict_by_schema(track_dict, TrackerCommon.ALBUM_ID, track_metadata.album.id)
+        soundprintutils.update_dict_by_schema(track_dict, TrackerCommon.DURATION_MS, track_metadata.duration_ms)
+        soundprintutils.update_dict_by_schema(track_dict, TrackerCommon.NAME, track_metadata.name)
+        soundprintutils.update_dict_by_schema(track_dict, TrackerCommon.POPULARITY, track_metadata.popularity)
+        soundprintutils.update_dict_by_schema(track_dict, TrackerCommon.EXPLICIT, track_metadata.explicit)
+        soundprintutils.update_dict_by_schema(track_dict, TrackerCommon.ACOUSTICNESS, track_audio_features.acousticness)
+        soundprintutils.update_dict_by_schema(track_dict, TrackerCommon.DANCEABILITY, track_audio_features.danceability)
+        soundprintutils.update_dict_by_schema(track_dict, TrackerCommon.ENERGY, track_audio_features.energy)
+        soundprintutils.update_dict_by_schema(track_dict,
+                                              TrackerCommon.INSTRUMENTALNESS, track_audio_features.instrumentalness)
+        soundprintutils.update_dict_by_schema(track_dict, TrackerCommon.KEY, track_audio_features.key)
+        soundprintutils.update_dict_by_schema(track_dict, TrackerCommon.LIVENESS, track_audio_features.liveness)
+        soundprintutils.update_dict_by_schema(track_dict, TrackerCommon.LOUDNESS, track_audio_features.loudness)
+        soundprintutils.update_dict_by_schema(track_dict, TrackerCommon.MODE, track_audio_features.mode)
+        soundprintutils.update_dict_by_schema(track_dict, TrackerCommon.SPEECHINESS, track_audio_features.speechiness)
+        soundprintutils.update_dict_by_schema(track_dict, TrackerCommon.TEMPO, track_audio_features.tempo)
+        soundprintutils.update_dict_by_schema(track_dict,
+                                              TrackerCommon.TIME_SIGNATURE, track_audio_features.time_signature)
+        soundprintutils.update_dict_by_schema(track_dict, TrackerCommon.VALENCE, track_audio_features.valence)
+
         track_artists = list(map(lambda artist: artist.id, track_metadata.artists))
         track_dict_list += soundprintutils.normalize_dict_field_list(track_dict, track_artists, TrackerCommon.ARTIST_ID)
 
@@ -83,7 +85,7 @@ def lambda_handler(listened_file_name, context):
     # Read S3 Event to get the created csv file containing track-ids to query
     listened_df = soundprintutils.download_df_from_s3_csv(listened_file_name, ListenerCommon.SCHEMA)
 
-    track_ids = list(set(listened_df[ListenerCommon.TRACK_ID]))
+    track_ids = list(set(listened_df[ListenerCommon.TRACK_ID[0]]))
 
     # Get Spotify access token and initialize Spotify client
     access_token = soundprintutils.get_access_token()

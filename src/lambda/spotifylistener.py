@@ -21,10 +21,11 @@ def extract_playback_info(playback_items: List[tk.model.PlayHistory]) -> List[di
     items_dict_list = []
 
     for item in playback_items:
-        item_dict = {
-            ListenerCommon.TIMESTAMP: item.played_at.replace(tzinfo=timezone.utc).timestamp(),
-            ListenerCommon.TRACK_ID: item.track.id,
-        }
+        item_dict = {}
+        soundprintutils.update_dict_by_schema(item_dict, ListenerCommon.TIMESTAMP,
+                                              item.played_at.replace(tzinfo=timezone.utc).timestamp())
+        soundprintutils.update_dict_by_schema(item_dict, ListenerCommon.TRACK_ID, item.track.id)
+
         TRACK_DURATION_MS[item.track.id] = item.track.duration_ms
 
         items_dict_list.append(item_dict)
@@ -67,29 +68,29 @@ def update_listened_to_durations(playtracks_df: pd.DataFrame, current_timestamp_
     :return: Output pandas DataFrame with calculated ListenerCommon#LISTENED_TIME, sorted by when track was played in
     ascending order
     """
-    playtracks_df = playtracks_df.sort_values(ListenerCommon.TIMESTAMP, ascending=False)
+    playtracks_df = playtracks_df.sort_values(ListenerCommon.TIMESTAMP[0], ascending=False)
 
     listened_ms_list = []
     more_recent_timestamp_ms = current_timestamp_ms
 
     for index, row in playtracks_df.iterrows():
-        track_duration_ms = TRACK_DURATION_MS[row[ListenerCommon.TRACK_ID]]
-        played_at_timestamp_ms = int(row[ListenerCommon.TIMESTAMP]*1000)
+        track_duration_ms = TRACK_DURATION_MS[row[ListenerCommon.TRACK_ID[0]]]
+        played_at_timestamp_ms = int(row[ListenerCommon.TIMESTAMP[0]]*1000)
 
         # If the time-gap between when this track was played and when next track was played is longer than the
         # track's duration, assume the entire track was listened to and use track-duration as value
         # Else, use time-gap between when this track was played and when next track was played
         if (more_recent_timestamp_ms - played_at_timestamp_ms) > track_duration_ms:
-            listened_ms_list.append(int(track_duration_ms))
+            listened_ms_list.append(ListenerCommon.LISTENED_TIME[1](track_duration_ms))
         else:
-            listened_ms_list.append(more_recent_timestamp_ms - played_at_timestamp_ms)
+            listened_ms_list.append(ListenerCommon.LISTENED_TIME[1](more_recent_timestamp_ms - played_at_timestamp_ms))
 
         more_recent_timestamp_ms = played_at_timestamp_ms
 
-    listened_ms_series = pd.Series(listened_ms_list, name=ListenerCommon.LISTENED_TIME, index=playtracks_df.index)
+    listened_ms_series = pd.Series(listened_ms_list, name=ListenerCommon.LISTENED_TIME[0], index=playtracks_df.index)
     playtracks_df.update(listened_ms_series)
 
-    return playtracks_df.sort_values(ListenerCommon.TIMESTAMP, ascending=True)
+    return playtracks_df.sort_values(ListenerCommon.TIMESTAMP[0], ascending=True)
 
 
 def lambda_handler(event, context):

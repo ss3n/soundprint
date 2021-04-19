@@ -21,11 +21,11 @@ def get_artists_data(spotify_client: tk.Spotify, artist_ids: List[str]) -> pd.Da
 
     artist_dict_list = []
     for artist in artists_metadata:
-        artist_dict = {
-            ArtisterCommon.ARTIST_ID: artist.id,
-            ArtisterCommon.ARTIST_NAME: artist.name,
-            ArtisterCommon.ARTIST_POPULARITY: artist.popularity
-        }
+        artist_dict = {}
+        soundprintutils.update_dict_by_schema(artist_dict, ArtisterCommon.ARTIST_ID, artist.id)
+        soundprintutils.update_dict_by_schema(artist_dict, ArtisterCommon.ARTIST_NAME, artist.name)
+        soundprintutils.update_dict_by_schema(artist_dict, ArtisterCommon.ARTIST_POPULARITY, artist.popularity)
+
         genres = artist.genres
         artist_dict_list += soundprintutils.normalize_dict_field_list(artist_dict, genres, ArtisterCommon.ARTIST_GENRE)
 
@@ -45,7 +45,7 @@ def lambda_handler(tracks_file_name, context):
     # Read S3 Event to get the created csv file containing track-ids to query
     tracks_df = soundprintutils.download_df_from_s3_csv(tracks_file_name, TrackerCommon.SCHEMA)
 
-    artist_ids = list(set(tracks_df[TrackerCommon.ARTIST_ID].dropna()))
+    artist_ids = list(set(tracks_df[TrackerCommon.ARTIST_ID[0]].dropna()))
 
     # Get Spotify access token and initialize Spotify client
     access_token = soundprintutils.get_access_token()
