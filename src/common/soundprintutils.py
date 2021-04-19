@@ -8,6 +8,9 @@ import pandas as pd
 import io
 
 S3_BUCKET = 'soundprint-bucket'
+SECRET_ID = 'soundprint-db-secret'
+AURORA_DB = 'soundprintdb'
+AURORA_HISTORY_TABLE = 'soundprinthistory'
 
 
 def get_access_token():
@@ -120,3 +123,24 @@ def normalize_dict_field_list(dictt: dict, field_values: List, schema_field: Tup
             normalized_dict.update(dictt)
             normalized_list.append(normalized_dict)
         return normalized_list
+
+
+def get_db_secrets_arn() -> str:
+    """
+    Returns the arn for the AWS Secrets Manager holding the secrets for DB operations
+    """
+    secrets_client = boto3.client('secretsmanager')
+    return secrets_client.describe_secret(SecretId=SECRET_ID)['ARN']
+
+
+def get_rds_cluster_arn() -> str:
+    """
+    Returns the Aurora Cluster ARN for the Aurora DB
+    :return:
+    """
+    rds_client = boto3.client('rds')
+    db_clusters = rds_client.describe_db_clusters()['DBClusters']
+    for db_cluster in db_clusters:
+        if db_cluster['DatabaseName'] == AURORA_DB:
+            return db_cluster['DBClusterArn']
+    raise ValueError(f"Found no RDS Cluster matching expected database-name: {AURORA_DB}")
