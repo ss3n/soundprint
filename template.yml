@@ -175,12 +175,25 @@ Resources:
       Handler: src.lambda.spotifyartister.lambda_handler
       Role: !GetAtt SoundprintLambdaRole.Arn
 
+  # Lambda function that joins separate dataframes for recently listened tracks, their track-metadata,
+  # their album-metadata and artist-metadata. Triggered after all these files have been uploaded to S3.
+  # After joining, uploads the joined file to history/data/
   SoundprintSpotifyJoiner:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName: !Sub '${ProjectId}-lambda-spotify-joiner'
       Description: Joins individual tables containing various metadata for recently heard tracks into a single table
       Handler: src.lambda.spotifyjoiner.lambda_handler
+      Role: !GetAtt SoundprintLambdaRole.Arn
+
+  # Lambda function that takes the recently-created history data file containing joined data for listening-records,
+  # track-metadata, album-metadata and artist-metadata and archives it in the RDS Aurora DB
+  SoundprintSpotifyRdsArchiver:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${ProjectId}-lambda-spotify-rds-archiver'
+      Description: Archives the joined data-table to RDS Aurora DB that serves as a non-ephemeral record of all history
+      Handler: src.lambda.archiver.spotifyrdsarchiver.lambda_handler
       Role: !GetAtt SoundprintLambdaRole.Arn
 
   # StateMachine orchestrating workflow using Lambda functions
@@ -239,7 +252,13 @@ Resources:
               tracks.$: $.tracks
               albums.$: $.albums_artists[0]
               artists.$: $.albums_artists[1]
-            ResultPath: $.joining
+            ResultPath: $.data
+            Next: ArchiveState
+          ArchiveState:
+            Type: Task
+            Resource: !GetAtt SoundprintSpotifyRdsArchiver.Arn
+            InputPath: $.data
+            ResultPath: null
             End: true
 
   # Role for StateMachine orchestrating Lambda workflow
@@ -268,3 +287,4 @@ Resources:
                   - !GetAtt SoundprintSpotifyAlbumer.Arn
                   - !GetAtt SoundprintSpotifyArtister.Arn
                   - !GetAtt SoundprintSpotifyJoiner.Arn
+                  - !GetAtt SoundprintSpotifyRdsArchiver.Arn

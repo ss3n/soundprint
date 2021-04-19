@@ -44,3 +44,5 @@ def lambda_handler(file_names_map, context):
     # Upload to S3 as a CSV
     joint_file_name = f"{JoinerCommon.FILE_PATH_PREFIX}{listening_file_name.split(ListenerCommon.FILE_PATH_PREFIX)[1]}"
     soundprintutils.upload_df_to_s3_csv(joined_df, False, joint_file_name)
+
+    return joint_file_name
