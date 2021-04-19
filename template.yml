@@ -14,6 +14,19 @@ Parameters:
     Type: String
     Description: The name for a project pipeline stage, such as Staging or Prod, for which resources are provisioned and deployed.
     Default: ''
+  DBUsername:
+    Description: DB master username
+    Type: String
+    MinLength: 1
+    AllowedPattern: '[a-zA-Z0-9]*'
+    ConstraintDescription: Must contain only alphanumeric characters.
+  DBPassword:
+    Description: DB master password
+    NoEcho: true
+    Type: String
+    MinLength: 8
+    AllowedPattern: '[a-zA-Z0-9]*'
+    ConstraintDescription: Must contain only alphanumeric characters.
 
 Globals:
   Function:

@@ -9,7 +9,7 @@ class JoinerCommon:
         # Listening fields
         ListenerCommon.TIMESTAMP,
         ListenerCommon.LISTENED_TIME,
-
+        
         # Track attributes
         TrackerCommon.TRACK_ID,
         TrackerCommon.NAME,
@@ -28,7 +28,7 @@ class JoinerCommon:
         TrackerCommon.MODE,
         TrackerCommon.TEMPO,
         TrackerCommon.TIME_SIGNATURE,
-
+        
         # Album attributes
         AlbumerCommon.ALBUM_ID,
         AlbumerCommon.TYPE,
