@@ -18,14 +18,7 @@ Parameters:
     Description: DB master username
     Type: String
     MinLength: 1
-    AllowedPattern: '[a-zA-Z0-9]*'
-    ConstraintDescription: Must contain only alphanumeric characters.
-  DBPassword:
-    Description: DB master password
-    NoEcho: true
-    Type: String
-    MinLength: 8
-    AllowedPattern: '[a-zA-Z0-9]*'
+    AllowedPattern: '[a-zA-Z0-9]+'
     ConstraintDescription: Must contain only alphanumeric characters.
 
 Globals:
@@ -63,14 +56,18 @@ Resources:
     Type: AWS::SecretsManager::Secret
     Properties:
       Name: !Sub '${ProjectId}-db-secret'
-      SecretString: !Sub '{"username":"${DBUsername}","password":"${DBPassword}"}'
+      Description: Auto-generated user-password for DB
+      GenerateSecretString:
+        SecretStringTemplate: !Sub '{"username": "${DBUsername}"}'
+        GenerateStringKey: "password"
+        PasswordLength: 30
+        ExcludeCharacters: '"@/\'
 
-  # Aurora Serverless DB to archive all soundprint data
+  # Aurora Serverless DB to archive all soundprint records
   SoundprintAuroraCluster:
     Type: AWS::RDS::DBCluster
     Properties:
       DatabaseName: !Sub '${ProjectId}db'
-      DBClusterIdentifier: !Sub '${ProjectId}-db-cluster'
       EnableHttpEndpoint: true
       Engine: aurora-mysql
       EngineVersion: 5.7.12
@@ -80,8 +77,8 @@ Resources:
         SecondsUntilAutoPause: 900
         MinCapacity: 2
         MaxCapacity: 64
-      MasterUsername: !Ref DBUsername
-      MasterUserPassword: !Ref DBPassword
+      MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref SoundprintDBSecret, ':SecretString:username}}']]
+      MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref SoundprintDBSecret, ':SecretString:password}}']]
 
   # Common Lambda IAM role for all lambda functions in soundprint
   # Has executable permissions along with access to S3 bucket, dynamodb table and AuroraDB for the project
@@ -134,6 +131,13 @@ Resources:
                 Action: '*'
                 Resource:
                 - !Sub 'arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:cluster:${SoundprintAuroraCluster}'
+        - PolicyName: DescribeRDSClusters
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: rds:DescribeDBClusters
+                Resource: !Sub 'arn:${AWS::Partition}:rds:${AWS::Region}:${AWS::AccountId}:cluster:*'
 
   # Listener lambda function that gets triggered by a scheduled-event every hour and pulls the spotify tracks
   # listened to in the last hour. These are then archived in the S3 bucket under history/listening/
