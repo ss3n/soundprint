@@ -44,45 +44,47 @@ class JoinerCommon:
     ARTIST_GENRE = ArtisterCommon.ARTIST_GENRE
     ARTIST_POPULARITY = ArtisterCommon.ARTIST_POPULARITY
 
-    SCHEMA = [
+    TYPED_SCHEMA = [
         # Listening fields
-        LISTEN_TIMESTAMP[0],
-        LISTENED_TIME[0],
+        LISTEN_TIMESTAMP,
+        LISTENED_TIME,
         
         # Track attributes
-        TRACK_ID[0],
-        TRACK_NAME[0],
-        TRACK_DURATION_MS[0],
-        TRACK_POPULARITY[0],
-        TRACK_EXPLICIT[0],
-        TRACK_ACOUSTICNESS[0],
-        TRACK_DANCEABILITY[0],
-        TRACK_ENERGY[0],
-        TRACK_LIVENESS[0],
-        TRACK_LOUDNESS[0],
-        TRACK_INSTRUMENTALNESS[0],
-        TRACK_SPEECHINESS[0],
-        TRACK_VALENCE[0],
-        TRACK_KEY[0],
-        TRACK_MODE[0],
-        TRACK_TEMPO[0],
-        TRACK_TIME_SIGNATURE[0],
+        TRACK_ID,
+        TRACK_NAME,
+        TRACK_DURATION_MS,
+        TRACK_POPULARITY,
+        TRACK_EXPLICIT,
+        TRACK_ACOUSTICNESS,
+        TRACK_DANCEABILITY,
+        TRACK_ENERGY,
+        TRACK_LIVENESS,
+        TRACK_LOUDNESS,
+        TRACK_INSTRUMENTALNESS,
+        TRACK_SPEECHINESS,
+        TRACK_VALENCE,
+        TRACK_KEY,
+        TRACK_MODE,
+        TRACK_TEMPO,
+        TRACK_TIME_SIGNATURE,
 
         # Album attributes
-        ALBUM_ID[0],
-        ALBUM_TYPE[0],
-        ALBUM_GENRE[0],
-        ALBUM_LABEL[0],
-        ALBUM_NAME[0],
-        ALBUM_POPULARITY[0],
-        ALBUM_RELEASE_DATE[0],
-        ALBUM_TOTAL_TRACKS[0],
+        ALBUM_ID,
+        ALBUM_TYPE,
+        ALBUM_GENRE,
+        ALBUM_LABEL,
+        ALBUM_NAME,
+        ALBUM_POPULARITY,
+        ALBUM_RELEASE_DATE,
+        ALBUM_TOTAL_TRACKS,
         
         # Artist attributes
-        ARTIST_ID[0],
-        ARTIST_NAME[0],
-        ARTIST_GENRE[0],
-        ARTIST_POPULARITY[0]
+        ARTIST_ID,
+        ARTIST_NAME,
+        ARTIST_GENRE,
+        ARTIST_POPULARITY
     ]
+
+    SCHEMA = list(map(lambda ts: ts[0], TYPED_SCHEMA))
 
     FILE_PATH_PREFIX = 'history/data/'
