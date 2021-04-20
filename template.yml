@@ -26,7 +26,7 @@ Globals:
     AutoPublishAlias: live
     Runtime: python3.8
     MemorySize: 512
-    Timeout: 60
+    Timeout: 300
     DeploymentPreference:
       Enabled: true
       Type: AllAtOnce
@@ -198,6 +198,7 @@ Resources:
       FunctionName: !Sub '${ProjectId}-lambda-spotify-rds-archiver'
       Description: Archives the joined data-table to RDS Aurora DB that serves as a non-ephemeral record of all history
       Handler: src.lambda.archiver.spotifyrdsarchiver.lambda_handler
+      Timeout: 1200
       Role: !GetAtt SoundprintLambdaRole.Arn
 
   # StateMachine orchestrating workflow using Lambda functions
