@@ -87,8 +87,8 @@ def data_type_to_sql_type(dtype: classmethod, schema_type=False) -> str:
 
 def wakeup_serverless(rds_client):
     """
-    Wait for Aurora Serverless cluster to wake up with exponential backoff of exponent 2.
-    Starts with 1 second, waits for a max of 17 minutes
+    Wait for Aurora Serverless cluster to wake up with arithmetic backoff of 5 seconds.
+    Starts with 1 second, waits for a max of 4 minutes
     """
     delay_secs = 1
     for attempt in range(10):
@@ -100,7 +100,7 @@ def wakeup_serverless(rds_client):
             error_msg = ce.response.get('Error').get('Message')
             if error_code == 'BadRequestException' and 'Communications link failure' in error_msg:
                 time.sleep(delay_secs)
-                delay_secs *= 2
+                delay_secs += 5
             else:
                 raise ce
     raise Exception(f"Aurora RDS did not wake up for {delay_secs * 2} seconds")
@@ -144,7 +144,7 @@ def lambda_handler(data_file_name, context):
     into Aurora DB. Gets triggered after joining multiple types of metadata is complete and the joined file name
     is provided.
     If the Aurora table does not exist, it creates the table. If there are records to be inserted, the Aurora serverless
-    cluster is first woken up with exponential backoff until it is ready to receive SQL requests.
+    cluster is first woken up with an arithmetic backoff until it is ready to receive SQL requests.
     :param data_file_name: S3-key containing the file-name for the joined dataframe
     :param context:
     """

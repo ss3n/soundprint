@@ -228,7 +228,7 @@ Resources:
       FunctionName: !Sub '${ProjectId}-lambda-spotify-rds-archiver'
       Description: Archives the joined data-table to RDS Aurora DB that serves as a non-ephemeral record of all history
       Handler: src.lambda.archiver.spotifyrdsarchiver.lambda_handler
-      Timeout: 1200
+      Timeout: 900
       Role: !GetAtt SoundprintLambdaRole.Arn
 
   SpotifyRdsArchiverLogGroup:
