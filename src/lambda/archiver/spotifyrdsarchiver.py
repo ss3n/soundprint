@@ -76,7 +76,7 @@ def data_type_to_sql_type(dtype: classmethod, schema_type=False) -> str:
     if dtype == int:
         return 'INTEGER' if schema_type else 'longValue'
     elif dtype == float:
-        return 'FLOAT' if schema_type else 'doubleValue'
+        return 'DOUBLE' if schema_type else 'doubleValue'
     elif dtype == str:
         return 'VARCHAR(256)' if schema_type else 'stringValue'
     elif dtype == bool:
