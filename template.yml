@@ -149,6 +149,12 @@ Resources:
       Handler: src.lambda.spotifylistener.lambda_handler
       Role: !GetAtt SoundprintLambdaRole.Arn
 
+  SpotifyListenerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${SoundprintSpotifyListener}'
+      RetentionInDays: 14
+
   # Lambda function triggered by creation of files under history/listening/. Gathers metadata about tracks
   # listened to in that hour and archives them under history/tracks/
   SoundprintSpotifyTracker:
@@ -158,6 +164,12 @@ Resources:
       Description: Compiles track metadata by track-id, triggered upon creation of file with recently played tracks
       Handler: src.lambda.spotifytracker.lambda_handler
       Role: !GetAtt SoundprintLambdaRole.Arn
+
+  SpotifyTrackerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${SoundprintSpotifyTracker}'
+      RetentionInDays: 14
 
   # Lambda function triggered by creation of track-metadata file under history/tracks/. For each track, pulls the
   # album metadata and archives under history/albums/
@@ -169,6 +181,12 @@ Resources:
       Handler: src.lambda.spotifyalbumer.lambda_handler
       Role: !GetAtt SoundprintLambdaRole.Arn
 
+  SpotifyAlbumerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${SoundprintSpotifyAlbumer}'
+      RetentionInDays: 14
+
   # Lambda function triggered by creation of track-metadata file under history/tracks/. For each track, pulls the
   # artist metadata and archives under history/artists/
   SoundprintSpotifyArtister:
@@ -178,6 +196,12 @@ Resources:
       Description: Compiles artist metadata by artist-id upon creation of file with track metadata
       Handler: src.lambda.spotifyartister.lambda_handler
       Role: !GetAtt SoundprintLambdaRole.Arn
+
+  SpotifyArtisterLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${SoundprintSpotifyArtister}'
+      RetentionInDays: 14
 
   # Lambda function that joins separate dataframes for recently listened tracks, their track-metadata,
   # their album-metadata and artist-metadata. Triggered after all these files have been uploaded to S3.
@@ -190,6 +214,12 @@ Resources:
       Handler: src.lambda.spotifyjoiner.lambda_handler
       Role: !GetAtt SoundprintLambdaRole.Arn
 
+  SpotifyJoinerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${SoundprintSpotifyJoiner}'
+      RetentionInDays: 14
+
   # Lambda function that takes the recently-created history data file containing joined data for listening-records,
   # track-metadata, album-metadata and artist-metadata and archives it in the RDS Aurora DB
   SoundprintSpotifyRdsArchiver:
@@ -200,6 +230,12 @@ Resources:
       Handler: src.lambda.archiver.spotifyrdsarchiver.lambda_handler
       Timeout: 1200
       Role: !GetAtt SoundprintLambdaRole.Arn
+
+  SpotifyRdsArchiverLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${SoundprintSpotifyRdsArchiver}'
+      RetentionInDays: 14
 
   # StateMachine orchestrating workflow using Lambda functions
   SoundprintStateMachine:
