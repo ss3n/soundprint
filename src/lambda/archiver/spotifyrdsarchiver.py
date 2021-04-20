@@ -1,6 +1,7 @@
 import time
 from typing import List
 import pandas as pd
+import logging
 
 import boto3
 from botocore.config import Config
@@ -11,6 +12,9 @@ from src.common.joiner import JoinerCommon
 
 SECRETS_ARN = soundprintutils.get_db_secrets_arn()
 AURORA_CLUSTER_ARN = soundprintutils.get_rds_cluster_arn()
+
+LOGGER = logging.getLogger()
+LOGGER.setLevel(logging.DEBUG)
 
 
 def create_table_if_not_exists(rds_client):
@@ -146,23 +150,33 @@ def lambda_handler(data_file_name, context):
     """
     # Download historical snapshot file from S3
     df = soundprintutils.download_df_from_s3_csv(data_file_name, JoinerCommon.SCHEMA)
+    LOGGER.info(f"Downloaded joined data file from S3: {data_file_name}")
+    LOGGER.debug(f"DataFrame dimensions: {df.shape}")
 
     # Return if there is no data to update table
     if len(df.index) == 0:
+        LOGGER.info(f"No records in dataframe downloaded - returning")
         return
 
     # Get the RDSDataService client and wake up the cluster
     rds_data_client = boto3.client('rds-data', config=Config(retries={'max_attempts': 10, 'mode': 'standard'}))
+    LOGGER.debug(f"Created RDS DataService Client")
+
     wakeup_serverless(rds_data_client)
+    LOGGER.info(f"Woken up Aurora Serverless Cluster: {soundprintutils.AURORA_DB}")
 
     # Create table if not exists
     create_response = create_table_if_not_exists(rds_data_client)
+    LOGGER.debug(f"Executed CREATE-TABLE-IF-NOT-EXISTS. Response: {create_response}")
     if create_response['ResponseMetadata']['HTTPStatusCode'] != 200:
+        LOGGER.error(f"Table creation failed")
         raise Exception(f"Table creation-if-exists failed: {create_response}")
 
     # Insert soundprint records into table
     insert_response = insert_data_rows(df, rds_data_client)
+    LOGGER.debug(f"Executed data insertion for {df.shape[0]} rows. Response: {insert_response}")
     if insert_response['ResponseMetadata']['HTTPStatusCode'] != 200:
+        LOGGER.error(f"Insertion failed: {insert_response}")
         raise Exception(f"Record(s) insertion failed: {insert_response}")
 
     return 
