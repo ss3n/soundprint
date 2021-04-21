@@ -111,7 +111,7 @@ Resources:
             Statement:
               - Effect: Allow
                 Action: '*'
-                Resource: 'arn:aws:dynamodb:us-west-2:212033165103:table/SpotifyTokenState'
+                Resource: !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/SpotifyTokenState'
         - PolicyName: SoundprintSecretsAccess
           PolicyDocument:
             Version: '2012-10-17'
